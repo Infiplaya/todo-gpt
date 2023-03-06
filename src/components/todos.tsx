@@ -7,6 +7,8 @@ import { api } from "~/utils/api";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import clsx from "clsx";
+import { Input } from "./ui/input";
 
 export const Todos = () => {
   const { data } = api.todos.getAllTodos.useQuery();
@@ -16,9 +18,9 @@ export const Todos = () => {
   const { generatedRecommendation, getTodoRecommendation } =
     useGenerateRecommendation();
 
-  const { handleAddTodo, handleDeleteTodo } = useTodos();
+  const { handleAddTodo, handleDeleteTodo, handleCompleteTodo } = useTodos();
 
-  const { toast } = useToast();
+  console.log(data);
 
   return (
     <div className="my-20 w-full px-8">
@@ -28,15 +30,31 @@ export const Todos = () => {
           {data?.map((todo) => (
             <div
               key={todo.id}
-              className="flex flex-col justify-center gap-5 rounded-md border border-slate-200 p-5 shadow-md"
+              className="flex flex-col justify-center gap-5 rounded-md border border-slate-200 p-5 shadow-md transition-colors"
             >
-              <p>{todo.description}</p>
-              <div className="flex space-x-3">
+              <p
+                className={clsx(
+                  todo.completed && "text-slate-500 line-through"
+                )}
+              >
+                {todo.description}
+              </p>
+              <div className="flex items-center space-x-3">
+                <Button
+                  variant={"outline"}
+                  onClick={() => handleCompleteTodo(todo.id, todo.completed)}
+                  className={
+                    "flex h-8 w-8 items-center justify-center rounded-full"
+                  }
+                >
+                  {todo.completed ? "✔️" : null}
+                </Button>
+
                 <Button
                   onClick={(e) =>
                     void getTodoRecommendation(e, todo.description)
                   }
-                  variant={"outline"}
+                  variant={"subtle"}
                   className="flex gap-2 text-xs uppercase"
                 >
                   <Flower className="h-5 w-5 text-slate-700" />
@@ -45,11 +63,6 @@ export const Todos = () => {
                 <Button
                   onClick={() => {
                     handleDeleteTodo(todo.id);
-                    toast({
-                      title: "Delete Todo",
-                      description: "This Todo was deleted from your list!",
-                      variant: "destructive",
-                    });
                   }}
                   className="text-xs uppercase"
                   variant={"destructive"}
@@ -77,10 +90,6 @@ export const Todos = () => {
                       className={"w-auto self-start text-xs uppercase"}
                       onClick={() => {
                         handleAddTodo(recommendation);
-                        toast({
-                          title: "Add Todo",
-                          description: "AI generated todo added to your list!",
-                        });
                       }}
                     >
                       Add Todo
@@ -107,7 +116,11 @@ const CreateTodo = () => {
         description,
       },
       {
-        onSuccess: () => console.log("Success!"),
+        onSuccess: () =>
+          toast({
+            title: "Add Todo",
+            description: "Todo succesfully added to your list!",
+          }),
       }
     );
   };
@@ -115,9 +128,9 @@ const CreateTodo = () => {
   return (
     <div className="flex flex-col gap-5">
       <label htmlFor="description" className="text-2xl font-semibold">
-        Add Todo
+        What needs to be done?
       </label>
-      <Textarea
+      <Input
         name="description"
         id="description"
         value={description}
@@ -126,10 +139,6 @@ const CreateTodo = () => {
       <Button
         onClick={() => {
           handleAddTodo();
-          toast({
-            title: "Add Todo",
-            description: "AI generated todo added to your list!",
-          });
         }}
         className="self-end"
       >

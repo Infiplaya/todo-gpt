@@ -8,7 +8,7 @@ export const useGenerateRecommendation = () => {
     e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
     description: string
   ) => {
-    const prompt = `Please give me 5 recommendations of similar tasks that I can add to my todo list based on description provided: ${description} Keep your recommendation max 15 characters. Make sure to label them 1., 2. etc. Make sure to write them in the same language as original description`;
+    const prompt = `Please give me 3 recommendations of similar tasks that I can add to my todo list based on description provided: ${description} Keep your recommendation max 15 characters. Make sure to label them 1., 2. etc. Make sure to write them in the same language as original description`;
     e.preventDefault();
     setGeneratedRecommendation("");
     setLoading(true);

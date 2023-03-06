@@ -65,7 +65,7 @@ export const Todos = () => {
             <div>
               {generatedRecommendation
                 .substring(generatedRecommendation.indexOf("1") + 3)
-                .split(/[2-5]\./)
+                .split(/[2-3]\./)
                 .map((recommendation) => (
                   <div
                     key={recommendation}

@@ -1,108 +1,109 @@
-import { MouseEvent, useState } from "react";
+import { Flower, XIcon } from "lucide-react";
+import { useState } from "react";
+import { useGenerateRecommendation } from "~/hooks/useGenerateRecommendation";
+import { useToast } from "~/hooks/useToast";
+import { useTodos } from "~/hooks/useTodos";
 import { api } from "~/utils/api";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 export const Todos = () => {
   const { data } = api.todos.getAllTodos.useQuery();
-  const [loading, setLoading] = useState(false);
-  const [generatedRecommendation, setGeneratedRecommendation] = useState("");
 
-  const deleteTodo = api.todos.deleteTodo.useMutation();
+  const [parent] = useAutoAnimate();
 
-  const getTodoRecommendation = async (
-    e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
-    description: string
-  ) => {
-    const prompt = `Please give me 3 recommendations of similar Todos based on description provided: ${description}`;
-    e.preventDefault();
-    setGeneratedRecommendation("");
-    setLoading(true);
-    const response = await fetch("/api/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt,
-      }),
-    });
+  const { generatedRecommendation, getTodoRecommendation } =
+    useGenerateRecommendation();
 
-    if (!response.ok) {
-      throw new Error(response.statusText);
-    }
+  const { handleAddTodo, handleDeleteTodo } = useTodos();
 
-    // This data is a ReadableStream
-    const data = response.body;
-    if (!data) {
-      return;
-    }
-
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
-
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-      setGeneratedRecommendation((prev) => prev + chunkValue);
-    }
-    setLoading(false);
-  };
-
-  const handleDeleteTodo = (todoId: string) => {
-    deleteTodo.mutate(
-      {
-        id: todoId,
-      },
-      {
-        onSuccess: () => console.log("Deleted"),
-        onError: (error) => console.log(error),
-      }
-    );
-  };
+  const { toast } = useToast();
 
   return (
-    <>
-      <AddTodos />
-      <div>
-        Todos:
-        {data?.map((todo) => (
-          <div key={todo.id}>
-            <li>{todo.title}</li>
-            <li>{todo.description}</li>
-            <Button
-              onClick={() => handleDeleteTodo(todo.id)}
-              variant={"destructive"}
+    <div className="my-20 w-full px-8">
+      <CreateTodo />
+      <div className="mt-10 flex gap-3">
+        <div className="flex-1 space-y-10" ref={parent}>
+          {data?.map((todo) => (
+            <div
+              key={todo.id}
+              className="flex flex-col justify-center gap-5 rounded-md border border-slate-200 p-5 shadow-md"
             >
-              Delete Todo
-            </Button>
-            <Button
-              onClick={(e) => void getTodoRecommendation(e, todo.description)}
-            >
-              Get Recommendation
-            </Button>
-          </div>
-        ))}
+              <p>{todo.description}</p>
+              <div className="flex space-x-3">
+                <Button
+                  onClick={(e) =>
+                    void getTodoRecommendation(e, todo.description)
+                  }
+                  variant={"outline"}
+                  className="flex gap-2 text-xs uppercase"
+                >
+                  <Flower className="h-5 w-5 text-slate-700" />
+                  AI
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleDeleteTodo(todo.id);
+                    toast({
+                      title: "Delete Todo",
+                      description: "This Todo was deleted from your list!",
+                      variant: "destructive",
+                    });
+                  }}
+                  className="text-xs uppercase"
+                  variant={"destructive"}
+                >
+                  <XIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 space-y-10">
+          {generatedRecommendation ? (
+            <div>
+              {generatedRecommendation
+                .substring(generatedRecommendation.indexOf("1") + 3)
+                .split(/[2-5]\./)
+                .map((recommendation) => (
+                  <div
+                    key={recommendation}
+                    className="flex flex-col justify-center gap-5 rounded-md border border-slate-200 p-5 shadow-md"
+                  >
+                    <p>{recommendation}</p>
+                    <Button
+                      variant={"outline"}
+                      className={"w-auto self-start text-xs uppercase"}
+                      onClick={() => {
+                        handleAddTodo(recommendation);
+                        toast({
+                          title: "Add Todo",
+                          description: "AI generated todo added to your list!",
+                        });
+                      }}
+                    >
+                      Add Todo
+                    </Button>
+                  </div>
+                ))}
+            </div>
+          ) : null}
+        </div>
       </div>
-
-      {loading ? <div>Loading...</div> : null}
-
-      {generatedRecommendation ? <div>{generatedRecommendation}</div> : null}
-    </>
+    </div>
   );
 };
 
-const AddTodos = () => {
-  const [title, setTitle] = useState("");
+const CreateTodo = () => {
   const [description, setDescription] = useState("");
-  const addTodo = api.todos.createTodo.useMutation();
+  const { addTodo } = useTodos();
+
+  const { toast } = useToast();
 
   const handleAddTodo = () => {
     addTodo.mutate(
       {
-        title,
         description,
       },
       {
@@ -112,20 +113,28 @@ const AddTodos = () => {
   };
 
   return (
-    <div className="flex flex-col gap-10">
-      <label>Title</label>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        type="text"
-        className="h-20 w-48 border border-red-500"
-      />
-      <label>Description</label>
+    <div className="flex flex-col gap-5">
+      <label htmlFor="description" className="text-2xl font-semibold">
+        Add Todo
+      </label>
       <Textarea
+        name="description"
+        id="description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
-      <Button onClick={handleAddTodo}>Add Todo</Button>
+      <Button
+        onClick={() => {
+          handleAddTodo();
+          toast({
+            title: "Add Todo",
+            description: "AI generated todo added to your list!",
+          });
+        }}
+        className="self-end"
+      >
+        Add Todo
+      </Button>
     </div>
   );
 };

@@ -7,11 +7,10 @@ import {
 
 export const todoRouter = createTRPCRouter({
   createTodo: publicProcedure
-    .input(z.object({ title: z.string(), description: z.string() }))
+    .input(z.object({ description: z.string() }))
     .mutation(async ({ input, ctx }) => {
       await ctx.prisma.todo.create({
         data: {
-          title: input.title,
           description: input.description,
         },
       });
